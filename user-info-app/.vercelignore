@@ -1,0 +1,8 @@
+.env*
+!.env.example
+*.db
+*.db-*
+__pycache__
+test_*.py
+preview.png
+.git
