@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>행사 참가 신청</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#faf9fd;color:#211a31;font-family:"맑은 고딕",system-ui,sans-serif;line-height:1.6}
+    main{min-height:100vh;display:grid;place-items:center;padding:40px 24px}.card{width:100%;max-width:880px;background:white;border:1px solid #e8e3ef;border-radius:24px;padding:48px;box-shadow:0 12px 48px #30204c08}
+    .eyebrow{margin:0 0 12px;color:#7548bb;font-size:13px;font-weight:700;letter-spacing:1.8px}h1{margin:0;font-size:34px;letter-spacing:-1px}.intro{margin:14px 0 32px;color:#716b7b;font-size:17px}header{border-bottom:1px solid #ece8f1;margin-bottom:30px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:24px}.field{margin-bottom:26px}label{display:block;margin-bottom:9px;font-weight:700;font-size:16px}input,select,button{font:inherit}input,select{width:100%;height:54px;border:1px solid #cfc9d8;border-radius:9px;background:#fff;color:#211a31;padding:0 15px}input::placeholder{color:#99929e}
+    input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #cab3ee;outline-offset:3px}button{width:100%;border:0;border-radius:10px;background:#7043bd;color:white;padding:15px;cursor:pointer;font-weight:700;font-size:17px;transition:background .15s}button:hover{background:#6034a8}button:disabled{opacity:.65;cursor:wait}.note{color:#89818e;font-size:13px;margin:18px 0 0}.status{margin:0 0 18px;padding:13px 16px;border-radius:9px;background:#f2ecfa;color:#513086}.status.error{background:#fff0f0;color:#a02d38}.footer{margin-top:28px;color:#a29aa9;font-size:12px}
+    @media(max-width:600px){main{padding:24px 16px}.card{padding:28px 22px;border-radius:18px}.row{grid-template-columns:1fr;gap:0}h1{font-size:28px}.intro{font-size:15px}}
+  </style>
+</head>
+<body>
+<main><section class="card" aria-labelledby="title">
+  <header><p class="eyebrow">HANDS-ON WORKSHOP</p><h1 id="title">행사 참가 신청</h1><p class="intro">참가 정보를 입력하고 희망 회차를 선택해 주세요.</p></header>
+  <form id="registration-form">
+    <div class="row">
+      <div class="field"><label for="name">이름</label><input id="name" name="name" placeholder="이름 입력" autocomplete="name" maxlength="100" required></div>
+      <div class="field"><label for="email">이메일</label><input id="email" name="email" type="email" placeholder="name@example.com" autocomplete="email" maxlength="254" required></div>
+    </div>
+    <div class="field"><label for="session">참가 회차</label><select id="session" name="session" required><option value="" disabled selected>회차 선택</option value="1">1회차</option><option value="2">2회차</option><option value="3">3회차</option></select></div>
+    <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+    <button id="submit" type="submit">신청하기</button>
+  </form>
+  <p class="note">실습 시 가상의 이름과 이메일을 사용해 주세요.</p>
+  <p class="footer">워크숍 신청 · 입력한 정보는 참가 신청 처리에 사용됩니다.</p>
+</section></main>
+<script>
+  const form = document.querySelector('#registration-form');
+  const button = document.querySelector('#submit');
+  const status = document.querySelector('#status');
+  let requestId = null;
+  form.addEventListener('input', () => { requestId = null; });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (button.disabled) return;
+    const name = form.elements.name;
+    name.setCustomValidity(name.value.trim() ? '' : '이름을 입력해 주세요.');
+    if (!form.reportValidity()) return;
+    button.disabled = true;
+    button.textContent = '저장 중…';
+    status.hidden = true;
+    requestId = requestId || crypto.randomUUID();
+    const fields = ['name', 'email', 'session'].map(key => form.elements[key]);
+    fields.forEach(field => { field.disabled = true; });
+    try {
+      const response = await fetch('/api/registrations', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name.value.trim(), email: form.elements.email.value.trim(), session: form.elements.session.value, request_id: requestId})
+      });
+      const result = await response.json().catch(() => ({message: '저장하지 못했습니다. 잠시 후 다시 신청해 주세요.'}));
+      if (!response.ok) throw new Error(result.message || '저장하지 못했습니다. 다시 신청해 주세요.');
+      form.reset();
+      requestId = null;
+      status.className = 'status';
+      status.textContent = '신청이 완료되었습니다. 참가 정보가 저장되었습니다.';
+    } catch (error) {
+      status.className = 'status error';
+      status.textContent = error instanceof TypeError ? '서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 신청해 주세요.' : error.message;
+    } finally {
+      status.hidden = false;
+      button.disabled = false;
+      fields.forEach(field => { field.disabled = false; });
+      button.textContent = '신청하기';
+    }
+  });
+  form.elements.name.addEventListener('input', () => form.elements.name.setCustomValidity(''));
+</script>
+</body>
+</html>
