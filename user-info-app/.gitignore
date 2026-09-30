@@ -1,0 +1,9 @@
+__pycache__/
+*.db
+*.db-journal
+*.db-*
+.env
+.env.*
+!.env.example
+.vercel/
+deployment-state.json
